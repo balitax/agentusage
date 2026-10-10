@@ -126,6 +126,7 @@ Run `make help` for the full list.
 | `build` / `release` | Build Debug or Release with `xcodebuild` |
 | `run` / `run-release` | Build and launch the app |
 | `swift-build` / `swift-run` | Build or run with SwiftPM |
+| `test` / `test-xcode` | Run the unit tests with SwiftPM or `xcodebuild` |
 | `format` / `lint` | Format sources or check formatting with `swift-format` |
 | `install` / `uninstall` | Copy the Release app to `/Applications` or remove it |
 | `zip` / `dmg` / `checksums` | Package a Release build into `dist/AgentUsage-<version>.*` and write checksums |
@@ -161,6 +162,7 @@ Sources/AgentUsage/
 ├── Views/         Overview, Accounts, Monthly, Integrations, Onboarding, MenuBar, Components
 ├── Theme/         Design tokens (light/dark), vibrancy surface
 └── Utilities/     Formatters
+Tests/AgentUsageTests/  Unit tests for models, services and view models
 agentusage.yml     XcodeGen project spec
 Makefile           Developer tasks
 ```
@@ -169,6 +171,15 @@ Makefile           Developer tasks
 - **`AppViewModel`** holds shared state (selected account, chart range, menu bar icon values).
 - **`Router`** holds navigation state (current screen, account being edited, onboarding step).
 - **`UsageRepository`** loads accounts from local logs and every connected integration, once a minute and on demand.
+
+## Testing
+
+```sh
+make test          # SwiftPM
+make test-xcode    # xcodebuild
+```
+
+View models and services are tested without the network or real preferences: `UsageRepository` accepts a stubbed loader, and `SettingsService` and `IntegrationService` accept an isolated `UserDefaults` suite.
 
 ## Privacy and security
 

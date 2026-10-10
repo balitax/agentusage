@@ -30,9 +30,16 @@ import Foundation
 
 /// Manages connected integrations: validation, persistence and Keychain storage.
 final class IntegrationService: ObservableObject {
-    @Published private(set) var integrations: [Integration] = Integration.loadAll()
-    @Published private(set) var hiddenLocal: Set<String> = Set(
-        UserDefaults.standard.stringArray(forKey: "hiddenLocal") ?? [])
+    @Published private(set) var integrations: [Integration]
+    @Published private(set) var hiddenLocal: Set<String>
+
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        integrations = Integration.loadAll(defaults: defaults)
+        hiddenLocal = Set(defaults.stringArray(forKey: "hiddenLocal") ?? [])
+    }
 
     /// Called after any change so data can be reloaded.
     var onChange: () -> Void = {}
@@ -89,7 +96,7 @@ final class IntegrationService: ObservableObject {
             if !name.isEmpty, let i = integrations.firstIndex(where: { $0.id == id }) {
                 integrations[i].name = name
             }
-            Integration.saveAll(integrations)
+            Integration.saveAll(integrations, defaults: defaults)
             onChange()
         }
     }
@@ -102,28 +109,28 @@ final class IntegrationService: ObservableObject {
             disconnect(id)
         } else {
             hiddenLocal.insert(account.id)
-            UserDefaults.standard.set(Array(hiddenLocal), forKey: "hiddenLocal")
+            defaults.set(Array(hiddenLocal), forKey: "hiddenLocal")
             onChange()
         }
     }
 
     func restoreHidden() {
         hiddenLocal = []
-        UserDefaults.standard.removeObject(forKey: "hiddenLocal")
+        defaults.removeObject(forKey: "hiddenLocal")
         onChange()
     }
 
     func disconnect(_ id: String) {
         KeychainStore.delete(id)
         integrations.removeAll { $0.id == id }
-        Integration.saveAll(integrations)
+        Integration.saveAll(integrations, defaults: defaults)
         onChange()
     }
 
     private func append(_ item: Integration) async {
         await MainActor.run {
             integrations.append(item)
-            Integration.saveAll(integrations)
+            Integration.saveAll(integrations, defaults: defaults)
             onChange()
         }
     }

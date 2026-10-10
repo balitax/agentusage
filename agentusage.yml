@@ -37,3 +37,23 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: YES
+  AgentUsageTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/AgentUsageTests
+    dependencies:
+      - target: AgentUsage
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.agus.AgentUsageTests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+schemes:
+  AgentUsage:
+    build:
+      targets:
+        AgentUsage: all
+    test:
+      targets:
+        - AgentUsageTests

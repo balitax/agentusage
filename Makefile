@@ -15,7 +15,7 @@ PATH       := /opt/homebrew/bin:/usr/local/bin:$(PATH)
 
 .DEFAULT_GOAL := help
 .PHONY: help setup generate open build release run run-release swift-build swift-run \
-        format lint install uninstall zip dmg reset-onboarding reset clean distclean version checksums publish
+        test test-xcode format lint install uninstall zip dmg reset-onboarding reset clean distclean version checksums publish
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\n"} \
@@ -50,6 +50,12 @@ swift-build: ## Build with SwiftPM (no Xcode project needed)
 
 swift-run: ## Run with SwiftPM
 	swift run
+
+test: ## Run unit tests with SwiftPM
+	swift test
+
+test-xcode: generate ## Run unit tests with xcodebuild
+	xcodebuild test -project $(PROJECT) -scheme $(APP) -destination 'platform=macOS' -derivedDataPath $(DERIVED) | tail -8
 
 format: ## Format all Swift sources with swift-format
 	swift format format -i -r Sources

@@ -60,14 +60,14 @@ struct Integration: Identifiable, Codable, Hashable {
 
     private static let key = "integrations"
 
-    static func loadAll() -> [Integration] {
-        guard let data = UserDefaults.standard.data(forKey: key),
+    static func loadAll(defaults: UserDefaults = .standard) -> [Integration] {
+        guard let data = defaults.data(forKey: key),
             let list = try? JSONDecoder().decode([Integration].self, from: data)
         else { return [] }
         return list
     }
 
-    static func saveAll(_ list: [Integration]) {
-        if let data = try? JSONEncoder().encode(list) { UserDefaults.standard.set(data, forKey: key) }
+    static func saveAll(_ list: [Integration], defaults: UserDefaults = .standard) {
+        if let data = try? JSONEncoder().encode(list) { defaults.set(data, forKey: key) }
     }
 }

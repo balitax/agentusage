@@ -34,12 +34,24 @@ final class UsageRepository: ObservableObject {
     @Published private(set) var loading = true
     @Published private(set) var updated = Date()
 
+    typealias Loader = (_ integrations: [Integration], _ hidden: Set<String>) async -> [Account]
+
     private let integrations: IntegrationService
+    private let load: Loader
     private var timer: Timer?
 
-    init(integrations: IntegrationService) {
+    /// - Parameters:
+    ///   - load: Builds the account list. Replace it in tests.
+    ///   - autoRefresh: Loads immediately and then every minute.
+    init(
+        integrations: IntegrationService,
+        load: @escaping Loader = { await AccountLoader.load(integrations: $0, hidden: $1) },
+        autoRefresh: Bool = true
+    ) {
         self.integrations = integrations
+        self.load = load
         integrations.onChange = { [weak self] in self?.refresh() }
+        guard autoRefresh else { return }
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.refresh()
@@ -48,16 +60,18 @@ final class UsageRepository: ObservableObject {
 
     deinit { timer?.invalidate() }
 
+    /// Reloads in the background.
     func refresh() {
-        let items = integrations.integrations
-        let hidden = integrations.hiddenLocal
-        Task.detached(priority: .utility) { [self] in
-            let loaded = await AccountLoader.load(integrations: items, hidden: hidden)
-            await MainActor.run {
-                self.accounts = loaded
-                self.updated = Date()
-                self.loading = false
-            }
+        Task.detached(priority: .utility) { [self] in await reload() }
+    }
+
+    /// Reloads and publishes the result.
+    func reload() async {
+        let loaded = await load(integrations.integrations, integrations.hiddenLocal)
+        await MainActor.run {
+            accounts = loaded
+            updated = Date()
+            loading = false
         }
     }
 }
