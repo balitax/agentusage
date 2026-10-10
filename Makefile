@@ -8,11 +8,14 @@ DERIVED    := .build/xcode
 DEBUG_APP  := $(DERIVED)/Build/Products/Debug/$(APP).app
 RELEASE_APP:= $(DERIVED)/Build/Products/Release/$(APP).app
 DIST       := dist
+VERSION    := $(shell sed -n 's/.*MARKETING_VERSION: *"\(.*\)"/\1/p' $(SPEC) | head -1)
+TAG        := v$(VERSION)
+REPO       := balitax/agentusage
 PATH       := /opt/homebrew/bin:/usr/local/bin:$(PATH)
 
 .DEFAULT_GOAL := help
 .PHONY: help setup generate open build release run run-release swift-build swift-run \
-        format lint install uninstall zip dmg reset-onboarding reset clean distclean
+        format lint install uninstall zip dmg reset-onboarding reset clean distclean version checksums publish
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "Usage: make \033[36m<target>\033[0m\n\n"} \
@@ -64,18 +67,35 @@ uninstall: ## Remove the app from /Applications
 	-pkill -x $(APP)
 	rm -rf /Applications/$(APP).app
 
-zip: release ## Package the Release app into dist/AgentUsage.zip
-	mkdir -p $(DIST)
-	ditto -c -k --keepParent $(RELEASE_APP) $(DIST)/$(APP).zip
-	@echo "Created $(DIST)/$(APP).zip"
+version: ## Print the app version from agentusage.yml
+	@echo $(VERSION)
 
-dmg: release ## Package the Release app into dist/AgentUsage.dmg
+zip: release ## Package the Release app into dist/AgentUsage-<version>.zip
+	mkdir -p $(DIST)
+	ditto -c -k --keepParent $(RELEASE_APP) $(DIST)/$(APP)-$(VERSION).zip
+	@echo "Created $(DIST)/$(APP)-$(VERSION).zip"
+
+dmg: release ## Package the Release app into dist/AgentUsage-<version>.dmg
 	mkdir -p $(DIST) .build/dmg
-	rm -rf .build/dmg/* $(DIST)/$(APP).dmg
+	rm -rf .build/dmg/* $(DIST)/$(APP)-$(VERSION).dmg
 	cp -R $(RELEASE_APP) .build/dmg/
 	ln -s /Applications .build/dmg/Applications
-	hdiutil create -volname "$(APP)" -srcfolder .build/dmg -ov -format UDZO $(DIST)/$(APP).dmg
-	@echo "Created $(DIST)/$(APP).dmg"
+	hdiutil create -volname "$(APP)" -srcfolder .build/dmg -ov -format UDZO $(DIST)/$(APP)-$(VERSION).dmg
+	@echo "Created $(DIST)/$(APP)-$(VERSION).dmg"
+
+checksums: ## Write dist/SHA256SUMS.txt for the dmg and zip
+	cd $(DIST) && shasum -a 256 $(APP)-$(VERSION).dmg $(APP)-$(VERSION).zip > SHA256SUMS.txt
+	@cat $(DIST)/SHA256SUMS.txt
+
+publish: ## Tag v<version> and create a GitHub release (NOTES=file.md optional)
+	@test -z "$$(git status --porcelain)" || (echo "Working tree is not clean. Commit first."; exit 1)
+	@git rev-parse $(TAG) >/dev/null 2>&1 && (echo "Tag $(TAG) already exists. Bump MARKETING_VERSION in $(SPEC)."; exit 1) || true
+	$(MAKE) clean dmg zip checksums
+	git tag -a $(TAG) -m "$(APP) $(VERSION)"
+	git push origin main $(TAG)
+	gh release create $(TAG) $(DIST)/$(APP)-$(VERSION).dmg $(DIST)/$(APP)-$(VERSION).zip $(DIST)/SHA256SUMS.txt \
+		--repo $(REPO) --title "$(APP) $(VERSION)" \
+		$(if $(NOTES),--notes-file $(NOTES),--generate-notes)
 
 reset-onboarding: ## Show the first-launch walkthrough again
 	-defaults delete $(BUNDLE_ID) onboarded

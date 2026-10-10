@@ -19,6 +19,8 @@ targets:
       path: Info.plist
       properties:
         CFBundleDisplayName: Agent Usage
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSUIElement: true
         LSMinimumSystemVersion: "13.0"
     entitlements:

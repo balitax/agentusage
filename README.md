@@ -124,10 +124,17 @@ Run `make help` for the full list.
 | `swift-build` / `swift-run` | Build or run with SwiftPM |
 | `format` / `lint` | Format sources or check formatting with `swift-format` |
 | `install` / `uninstall` | Copy the Release app to `/Applications` or remove it |
-| `zip` / `dmg` | Package a Release build into `dist/` |
+| `zip` / `dmg` / `checksums` | Package a Release build into `dist/AgentUsage-<version>.*` and write checksums |
+| `publish` | Tag `v<version>` and create a GitHub release (`make publish NOTES=notes.md`) |
+| `version` | Print the current version |
 | `reset-onboarding` | Show the first-launch walkthrough again |
 | `reset` | Clear saved preferences |
 | `clean` / `distclean` | Remove build output, or also the generated project |
+
+## Releasing
+
+1. Bump `MARKETING_VERSION` in `agentusage.yml` and commit.
+2. Run `make publish` (add `NOTES=notes.md` for custom release notes). It builds the DMG and zip, writes `SHA256SUMS.txt`, tags `v<version>`, pushes and creates the GitHub release with `gh`.
 
 ## Project structure
 
