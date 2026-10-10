@@ -31,16 +31,28 @@ import Foundation
 /// Reads GitHub Copilot AI-credit usage from the GitHub billing REST API.
 /// Needs a fine-grained personal access token with the user permission "Plan: read".
 struct CopilotProvider {
+    /// Fine-grained GitHub PAT sent as the `Authorization` bearer token.
     let token: String
 
+    /// A month's Copilot AI-credit spend, broken down per model.
     struct Result {
+        /// The GitHub login the token belongs to.
         let username: String
+        /// Total AI credits consumed this month (sum of `models`).
         let used: Double
+        /// Per-model credit spend, highest first.
         let models: [(name: String, credits: Double)]
     }
 
+    /// Resolves the token's user, fetches their current-month AI-credit billing, and
+    /// aggregates it per model.
+    ///
+    /// - Throws: `UsageProviderError.message` with user-facing guidance for 401 (bad token),
+    ///   403 (missing "Plan: read" permission) and 404 (no personal Copilot billing);
+    ///   `.http` for other failures and `.invalidResponse` for a malformed body.
     func creditUsage() async throws -> Result {
         let username = try await fetchUsername()
+        // Billing is scoped to a calendar month; GitHub expects UTC year/month.
         let comps = Calendar(identifier: .gregorian).dateComponents(
             in: TimeZone(identifier: "UTC")!, from: Date())
         let (data, http) = try await get(
@@ -67,7 +79,8 @@ struct CopilotProvider {
             let unit = (item["unitType"] as? String ?? "").lowercased()
             let qty = (item["grossQuantity"] as? NSNumber)?.doubleValue ?? 0
             let amount = (item["grossAmount"] as? NSNumber)?.doubleValue ?? 0
-            // 1 AI credit = US$0.01
+            // Lines are reported either directly in credits or in dollars; 1 AI credit = US$0.01,
+            // so dollar amounts are scaled up by 100 to a common credit unit.
             let credits = unit.contains("credit") ? qty : amount * 100
             perModel[item["model"] as? String ?? "Other", default: 0] += credits
         }
@@ -75,6 +88,7 @@ struct CopilotProvider {
         return Result(username: username, used: models.reduce(0) { $0 + $1.credits }, models: models)
     }
 
+    /// Looks up the login name the token authenticates as (needed to build the billing URL).
     private func fetchUsername() async throws -> String {
         let (data, http) = try await get("https://api.github.com/user")
         if http.statusCode == 401 {
@@ -87,6 +101,8 @@ struct CopilotProvider {
         return login
     }
 
+    /// Performs an authenticated GET against the GitHub REST API with the required
+    /// Accept, API-version and User-Agent headers, returning the body and HTTP response.
     private func get(_ url: String) async throws -> (Data, HTTPURLResponse) {
         var r = URLRequest(url: URL(string: url)!)
         r.timeoutInterval = 30
