@@ -28,23 +28,24 @@
 
 import SwiftUI
 
-/// First-launch walkthrough: welcome → choose source → ready.
+/// First-launch walkthrough: welcome, choose source, ready.
 struct OnboardingView: View {
-    @EnvironmentObject var store: UsageStore
-    @State private var useLocal = true
+    @StateObject private var viewModel: OnboardingViewModel
 
-    private var localFound: Bool { store.accounts.contains { $0.integrationID == nil } }
+    init(viewModel: @autoclosure @escaping () -> OnboardingViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
+    }
 
     var body: some View {
         VStack(spacing: 20) {
-            switch store.onboardingStep {
+            switch viewModel.step {
             case 0: welcome
             case 1: chooseSource
             default: ready
             }
-            StepDots(current: store.onboardingStep)
+            StepDots(current: viewModel.step)
         }
-        .onAppear { useLocal = localFound }
+        .onAppear(perform: viewModel.onAppear)
     }
 
     // MARK: Steps
@@ -64,7 +65,7 @@ struct OnboardingView: View {
                     symbol: "lock", title: "Private by design",
                     subtitle: "Tokens stay in your macOS Keychain.")
             }.padding(.vertical, 4)
-            primary("Get started", symbol: "arrow.right") { store.onboardingStep = 1 }
+            primary("Get started", symbol: "arrow.right", viewModel.start)
         }
     }
 
@@ -76,33 +77,28 @@ struct OnboardingView: View {
                     .font(LX.font(13)).foregroundColor(LX.text2).fixedSize(horizontal: false, vertical: true)
             }
             VStack(spacing: 10) {
-                Button {
-                    useLocal = true
-                } label: {
+                Button(action: viewModel.chooseLocal) {
                     OptionRow(
                         symbol: "folder.badge.checkmark", title: "Local logs",
-                        subtitle: localFound
+                        subtitle: viewModel.localFound
                             ? "Claude Code detected in ~/.claude. No sign-in needed."
                             : "Claude Code not found on this Mac.",
-                        card: true, selected: useLocal && localFound, trailing: "checkmark.circle")
-                }.buttonStyle(.plain).disabled(!localFound)
-                Button {
-                    store.screen = .addIntegration
-                } label: {
+                        card: true, selected: viewModel.useLocal && viewModel.localFound,
+                        trailing: "checkmark.circle")
+                }.buttonStyle(.plain).disabled(!viewModel.localFound)
+                Button(action: viewModel.chooseToken) {
                     OptionRow(
                         symbol: "arrow.right.circle", title: "Sign in or API key",
                         subtitle: "Sign in with Claude, or add an OpenAI Admin key.", card: true,
-                        selected: !useLocal, trailing: "chevron.right")
+                        selected: !viewModel.useLocal, trailing: "chevron.right")
                 }.buttonStyle(.plain)
                 OptionRow(
                     symbol: "bubbles.and.sparkles", title: "Copilot · Gemini",
                     subtitle: "Support is coming soon.", card: true
                 ).opacity(0.45)
             }
-            primary("Continue", symbol: "arrow.right") {
-                if localFound && useLocal { store.onboardingStep = 2 } else { store.screen = .addIntegration }
-            }
-            Button("Back") { store.onboardingStep = 0 }
+            primary("Continue", symbol: "arrow.right", viewModel.continueFromSource)
+            Button("Back", action: viewModel.back)
                 .buttonStyle(.plain).font(LX.font(12)).foregroundColor(LX.text2).frame(maxWidth: .infinity)
         }
     }
@@ -110,13 +106,10 @@ struct OnboardingView: View {
     private var ready: some View {
         VStack(spacing: 20) {
             Badge(symbol: "checkmark")
-            titleBlock(
-                "You're all set",
-                "Reading usage from \(store.accounts.count) source\(store.accounts.count == 1 ? "" : "s"). Refreshes every minute.",
-                24)
+            titleBlock("You're all set", viewModel.readySubtitle, 24)
             VStack(spacing: 12) {
-                ForEach(store.accounts) { IntegrationRow(account: $0) }
-                if store.accounts.isEmpty {
+                ForEach(viewModel.accounts) { IntegrationRow(account: $0) }
+                if viewModel.accounts.isEmpty {
                     Text("Nothing connected. Add one from Accounts anytime.")
                         .font(LX.font(11)).foregroundColor(LX.text3)
                 }
@@ -126,7 +119,7 @@ struct OnboardingView: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(LX.border, lineWidth: 1))
             Label("Find the % in your menu bar. Click it anytime.", systemImage: "info.circle")
                 .font(LX.font(11)).foregroundColor(LX.text3)
-            primary("Open dashboard", symbol: "square.grid.2x2") { store.finishOnboarding() }
+            primary("Open dashboard", symbol: "square.grid.2x2", viewModel.finish)
         }
     }
 
@@ -140,7 +133,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func primary(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+    private func primary(_ title: String, symbol: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: symbol).font(.system(size: 12, weight: .semibold))

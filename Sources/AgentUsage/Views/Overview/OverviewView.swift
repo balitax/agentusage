@@ -29,40 +29,36 @@
 import SwiftUI
 
 struct OverviewView: View {
-    @EnvironmentObject var store: UsageStore
+    @StateObject private var viewModel: OverviewViewModel
 
-    private var rangeIndex: Binding<Int> {
-        Binding(
-            get: { UsageRange.allCases.firstIndex(of: store.range) ?? 2 },
-            set: { store.range = UsageRange.allCases[$0] })
+    init(viewModel: @autoclosure @escaping () -> OverviewViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel())
     }
 
     var body: some View {
-        let a = store.selected
-        if let credits = a.credits {
-            CreditsView(account: a, credits: credits)
+        if let credits = viewModel.credits {
+            CreditsView(viewModel: viewModel, credits: credits)
         } else {
-            usageBody(a)
+            usageBody
         }
     }
 
-    private func usageBody(_ a: Account) -> some View {
+    private var usageBody: some View {
         VStack(spacing: 16) {
-            BrandHeader()
+            BrandHeader(viewModel: viewModel.header)
+            WindowRow(title: "5-hour window", value: viewModel.fiveHour, reset: viewModel.fiveHourReset)
             WindowRow(
-                title: "5-hour window", value: a.fiveHour, reset: "Resets in " + Fmt.duration(a.fiveReset))
-            WindowRow(
-                title: "7-day window", value: a.sevenDay, reset: "Resets in " + Fmt.duration(a.sevenReset),
+                title: "7-day window", value: viewModel.sevenDay, reset: viewModel.sevenDayReset,
                 highlight: false)
             Hairline()
-            TabsControl(items: UsageRange.allCases.map(\.rawValue), selection: rangeIndex)
-            UsageChart(account: a)
+            TabsControl(items: viewModel.rangeItems, selection: $viewModel.rangeIndex)
+            UsageChart(viewModel: viewModel.chart)
             HStack {
-                summary("Today", Fmt.tokens(a.today))
+                summary("Today", viewModel.todayText)
                 Spacer()
-                summary("This month", Fmt.tokens(a.month))
+                summary("This month", viewModel.monthText)
             }
-            Footer()
+            Footer(viewModel: viewModel.footer)
         }
     }
 

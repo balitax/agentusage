@@ -30,12 +30,8 @@ import SwiftUI
 
 /// App mark plus the account switcher (avatar badge, first name, chevron).
 struct BrandHeader: View {
-    @EnvironmentObject var store: UsageStore
+    @ObservedObject var viewModel: BrandHeaderViewModel
     @State private var open = false
-
-    private var isAll: Bool { store.screen == .monthly }
-    private var title: String { isAll ? "All Accounts" : firstName(store.selected.name) }
-    private var letter: String { isAll ? "∑" : store.selected.initial }
 
     var body: some View {
         HStack {
@@ -56,8 +52,8 @@ struct BrandHeader: View {
             open.toggle()
         } label: {
             HStack(spacing: 6) {
-                Badge(letter: letter)
-                Text(title).font(LX.font(12, .medium)).foregroundColor(LX.text).lineLimit(1)
+                Badge(letter: viewModel.letter)
+                Text(viewModel.title).font(LX.font(12, .medium)).foregroundColor(LX.text).lineLimit(1)
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
                     .foregroundColor(LX.text3)
             }
@@ -74,15 +70,16 @@ struct BrandHeader: View {
 
     private var dropdown: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(store.accounts) { a in
-                item(letter: a.initial, title: a.name, selected: !isAll && a.id == store.selected.id) {
-                    store.selectedID = a.id
-                    store.screen = .overview
+            ForEach(viewModel.accounts) { a in
+                item(letter: a.initial, title: a.name, selected: viewModel.isSelected(a)) {
+                    viewModel.select(a)
                 }
             }
-            if store.accounts.count > 1 {
+            if viewModel.canShowAll {
                 Hairline().padding(.vertical, 2)
-                item(letter: "∑", title: "All Accounts", selected: isAll) { store.screen = .monthly }
+                item(letter: "∑", title: "All Accounts", selected: viewModel.isAllAccounts) {
+                    viewModel.showAll()
+                }
             }
         }
         .padding(6).frame(minWidth: 180)
@@ -111,10 +108,6 @@ struct BrandHeader: View {
             }
             .padding(.horizontal, 6).padding(.vertical, 5).contentShape(Rectangle())
         }.buttonStyle(.plain)
-    }
-
-    private func firstName(_ full: String) -> String {
-        full.split(separator: " ").first.map(String.init) ?? full
     }
 }
 

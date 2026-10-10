@@ -140,21 +140,35 @@ Run `make help` for the full list.
 1. Bump `MARKETING_VERSION` in `agentusage.yml` and commit.
 2. Run `make publish` (add `NOTES=notes.md` for custom release notes). It builds the DMG and zip, writes `SHA256SUMS.txt`, tags `v<version>`, pushes and creates the GitHub release with `gh`.
 
-## Project structure
+## Architecture
+
+The app follows **MVVM**. Views are thin and only render state; view models hold presentation logic; services own data access.
+
+```
+View  ──►  ViewModel  ──►  Services / Repository  ──►  Models
+SwiftUI    ObservableObject   Keychain, APIs, logs       value types
+```
 
 ```
 Sources/AgentUsage/
-├── App/           App entry point and root view
-├── Models/        Account, Integration, ProviderKind, UsageEvent, UsageRange, ...
-├── Services/      Keychain, local log reader, provider clients
+├── App/           AgentUsageApp, RootView, AppContainer (dependency wiring), Router
+├── Models/        Account, Integration, ProviderKind, CreditUsage, UsageEvent, UsageBucket, ...
+├── Services/      UsageRepository, IntegrationService, SettingsService, AccountLoader,
+│                  KeychainStore, UsageReader (local logs)
 │   └── Providers/ ClaudeOAuth, OpenAIProvider, CopilotProvider, BucketClient
-├── Stores/        UsageStore (state, refresh, integrations)
+├── ViewModels/    AppViewModel, OverviewViewModel, MonthlyViewModel, AccountsViewModel,
+│                  AddIntegrationViewModel, OnboardingViewModel, UsageChartViewModel, ...
+├── Views/         Overview, Accounts, Monthly, Integrations, Onboarding, MenuBar, Components
 ├── Theme/         Design tokens (light/dark), vibrancy surface
-├── Utilities/     Formatters
-└── Views/         Overview, Accounts, Monthly, Integrations, Onboarding, MenuBar, Components
+└── Utilities/     Formatters
 agentusage.yml     XcodeGen project spec
 Makefile           Developer tasks
 ```
+
+- **`AppContainer`** is the composition root. It creates the services and builds every view model with its dependencies.
+- **`AppViewModel`** holds shared state (selected account, chart range, menu bar icon values).
+- **`Router`** holds navigation state (current screen, account being edited, onboarding step).
+- **`UsageRepository`** loads accounts from local logs and every connected integration, once a minute and on demand.
 
 ## Privacy and security
 

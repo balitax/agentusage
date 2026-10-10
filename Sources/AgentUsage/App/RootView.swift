@@ -28,20 +28,22 @@
 
 import SwiftUI
 
+/// Switches between screens. View models are created lazily, once per appearance of a screen.
 struct RootView: View {
-    @EnvironmentObject var store: UsageStore
+    let container: AppContainer
+    @ObservedObject var app: AppViewModel
 
     var body: some View {
         Group {
-            switch store.screen {
-            case .overview: OverviewView()
-            case .accounts: AccountsView()
-            case .monthly: MonthlyView()
-            case .addIntegration: AddIntegrationView()
-            case .onboarding: OnboardingView()
+            switch app.router.screen {
+            case .overview: OverviewView(viewModel: container.makeOverview())
+            case .accounts: AccountsView(viewModel: container.makeAccounts())
+            case .monthly: MonthlyView(viewModel: container.makeMonthly())
+            case .addIntegration: AddIntegrationView(viewModel: container.makeAddIntegration())
+            case .onboarding: OnboardingView(viewModel: container.makeOnboarding())
             }
         }
-        .padding(store.screen == .onboarding ? 24 : 20)
+        .padding(app.router.screen == .onboarding ? 24 : 20)
         .frame(width: 360)
         .background(PopoverBackground())
     }

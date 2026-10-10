@@ -28,45 +28,29 @@
 
 import SwiftUI
 
-/// Stepper row for a usage limit stored in UserDefaults (tokens).
+/// Stepper row for a usage limit.
 struct LimitStepper: View {
-    @EnvironmentObject var store: UsageStore
-    let title: String
-    let key: String
-    let defaultValue: Double
-    let step: Double
-    let minimum: Double
-    var refreshOnChange = false
-    var format: (Double) -> String = { Fmt.short($0) }
-    @State private var value: Double = 0
+    @ObservedObject var viewModel: LimitStepperViewModel
 
     var body: some View {
         HStack {
-            Text(title).font(LX.font(13)).foregroundColor(LX.text2)
+            Text(viewModel.title).font(LX.font(13)).foregroundColor(LX.text2)
             Spacer()
             HStack(spacing: 0) {
-                button("minus") { set(value - step) }
-                Text(format(value)).font(LX.font(12, .semibold)).foregroundColor(LX.text)
+                button("minus", viewModel.decrease)
+                Text(viewModel.text).font(LX.font(12, .semibold)).foregroundColor(LX.text)
                     .monospacedDigit().frame(width: 48, height: 26)
-                button("plus") { set(value + step) }
+                button("plus", viewModel.increase)
             }
             .background(RoundedRectangle(cornerRadius: 8).fill(LX.surface))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(LX.border, lineWidth: 1))
         }
-        .onAppear { value = UserDefaults.standard.object(forKey: key) as? Double ?? defaultValue }
     }
 
-    private func button(_ symbol: String, action: @escaping () -> Void) -> some View {
+    private func button(_ symbol: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol).font(.system(size: 10, weight: .semibold)).foregroundColor(LX.text2)
                 .frame(width: 28, height: 26).contentShape(Rectangle())
         }.buttonStyle(.plain)
-    }
-
-    private func set(_ v: Double) {
-        value = max(minimum, v)
-        UserDefaults.standard.set(value, forKey: key)
-        store.objectWillChange.send()
-        if refreshOnChange { store.refresh() }
     }
 }

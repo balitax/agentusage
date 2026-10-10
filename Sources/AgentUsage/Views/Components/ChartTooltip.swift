@@ -30,15 +30,13 @@ import SwiftUI
 
 /// Small floating card shown while hovering a chart bar.
 struct ChartTooltip: View {
-    let title: String
-    let value: String
-    let lines: [String]
+    let data: ChartTooltipData
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(LX.font(10)).foregroundColor(LX.text3)
-            Text(value).font(LX.font(13, .semibold)).foregroundColor(LX.text).monospacedDigit()
-            ForEach(lines, id: \.self) { Text($0).font(LX.font(10)).foregroundColor(LX.text2) }
+            Text(data.title).font(LX.font(10)).foregroundColor(LX.text3)
+            Text(data.value).font(LX.font(13, .semibold)).foregroundColor(LX.text).monospacedDigit()
+            ForEach(data.lines, id: \.self) { Text($0).font(LX.font(10)).foregroundColor(LX.text2) }
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
         .fixedSize()

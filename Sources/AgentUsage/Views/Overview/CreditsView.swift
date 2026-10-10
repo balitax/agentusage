@@ -30,40 +30,36 @@ import SwiftUI
 
 /// Overview for plans measured in monthly AI credits (GitHub Copilot).
 struct CreditsView: View {
-    let account: Account
+    @ObservedObject var viewModel: OverviewViewModel
     let credits: CreditUsage
-
-    private func fmt(_ v: Double) -> String { Int(v.rounded()).formatted() }
 
     var body: some View {
         VStack(spacing: 16) {
-            BrandHeader()
-            WindowRow(
-                title: "AI credits this month", value: credits.fraction,
-                reset: "Resets in " + Fmt.duration(credits.resets.timeIntervalSinceNow))
+            BrandHeader(viewModel: viewModel.header)
+            WindowRow(title: "AI credits this month", value: credits.fraction, reset: viewModel.creditsReset)
             Hairline()
             VStack(alignment: .leading, spacing: 10) {
                 Text("By model").font(LX.font(12)).foregroundColor(LX.text3)
                 if credits.models.isEmpty {
                     Text("No usage yet this month.").font(LX.font(12)).foregroundColor(LX.text2)
                 }
-                ForEach(Array(credits.models.prefix(5).enumerated()), id: \.offset) { _, m in
+                ForEach(Array(viewModel.topModels.enumerated()), id: \.offset) { _, m in
                     HStack {
                         Text(m.name).font(LX.font(13)).foregroundColor(LX.text).lineLimit(1)
                         Spacer()
-                        Text(fmt(m.credits)).font(LX.font(13, .semibold)).foregroundColor(LX.text)
-                            .monospacedDigit()
+                        Text(viewModel.formatCredits(m.credits)).font(LX.font(13, .semibold))
+                            .foregroundColor(LX.text).monospacedDigit()
                     }
                 }
             }.frame(maxWidth: .infinity, alignment: .leading)
             HStack {
-                summary("Used", fmt(credits.used))
+                summary("Used", viewModel.formatCredits(credits.used))
                 Spacer()
-                summary("Included", fmt(credits.allowance))
+                summary("Included", viewModel.formatCredits(credits.allowance))
                 Spacer()
-                summary("Left", fmt(max(0, credits.allowance - credits.used)))
+                summary("Left", viewModel.formatCredits(max(0, credits.allowance - credits.used)))
             }
-            Footer()
+            Footer(viewModel: viewModel.footer)
         }
     }
 

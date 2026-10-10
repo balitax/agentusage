@@ -30,14 +30,22 @@ import SwiftUI
 
 @main
 struct AgentUsageApp: App {
-    @StateObject private var store = UsageStore()
+    private let container: AppContainer
+    @StateObject private var app: AppViewModel
+
+    init() {
+        let container = AppContainer()
+        self.container = container
+        _app = StateObject(wrappedValue: container.app)
+    }
+
     var body: some Scene {
         MenuBarExtra {
-            RootView().environmentObject(store)
+            RootView(container: container, app: app)
         } label: {
             Image(
                 nsImage: MenuBarIcon.render(
-                    five: store.menuBarFive, seven: store.menuBarSeven, pending: store.menuBarPending))
+                    five: app.menuBarFive, seven: app.menuBarSeven, pending: app.menuBarPending))
         }
         .menuBarExtraStyle(.window)
     }

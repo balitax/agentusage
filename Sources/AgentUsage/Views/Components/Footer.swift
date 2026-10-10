@@ -30,28 +30,24 @@ import SwiftUI
 
 /// Status line with text actions.
 struct Footer: View {
-    @EnvironmentObject var store: UsageStore
+    @ObservedObject var viewModel: FooterViewModel
 
     var body: some View {
         VStack(spacing: 12) {
             Hairline()
             HStack {
-                Text(
-                    store.loading
-                        ? "Loading…" : "Updated \(store.updated.formatted(.relative(presentation: .numeric)))"
-                )
-                .font(LX.font(11)).foregroundColor(LX.text3)
+                Text(viewModel.statusText).font(LX.font(11)).foregroundColor(LX.text3)
                 Spacer()
                 HStack(spacing: 16) {
-                    link("Accounts") { store.screen = store.screen == .accounts ? .overview : .accounts }
-                    link("Refresh") { store.refresh() }
-                    link("Quit") { NSApplication.shared.terminate(nil) }
+                    link("Accounts", viewModel.toggleAccounts)
+                    link("Refresh", viewModel.refresh)
+                    link("Quit", viewModel.quit)
                 }
             }
         }
     }
 
-    private func link(_ title: String, action: @escaping () -> Void) -> some View {
+    private func link(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title).font(LX.font(11, .medium)).foregroundColor(LX.text2)
         }.buttonStyle(.plain)
