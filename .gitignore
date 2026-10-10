@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+
+*.xcodeproj/
+Info.plist
+AgentUsage.entitlements
+.DS_Store
