@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo/icon-1024.png" width="128" alt="Agent Usage logo">
+</p>
+
 <h1 align="center">Agent Usage</h1>
 
 <p align="center">

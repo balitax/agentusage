@@ -15,6 +15,7 @@ targets:
     platform: macOS
     sources:
       - path: Sources/AgentUsage
+      - path: Resources
     info:
       path: Info.plist
       properties:
@@ -31,6 +32,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.agus.AgentUsage
         PRODUCT_NAME: AgentUsage
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
