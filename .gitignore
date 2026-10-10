@@ -5,3 +5,4 @@
 Info.plist
 AgentUsage.entitlements
 .DS_Store
+dist/
